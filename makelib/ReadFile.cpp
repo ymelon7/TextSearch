@@ -57,17 +57,30 @@ size_t ReadFile::readLine(char *usrbuf, size_t maxlen)
     return static_cast<size_t>(nread);
 }
 
+//读取n个字节,作为字符串返回
 std::string ReadFile::readnBytesAsString(size_t count)
 {
-    char *str = new char[count];
-    size_t nret = readnBytes(str, count);
     
-    std::string tmp(str, nret);
-    delete []str;
+    std::string result = "";
+    
+    char tmp[1024] = {0};
+    const size_t kSize = sizeof(tmp);
+    size_t nleft = count;  //left bytes
+    while(nleft > 0)
+    {
+        size_t nbytes = (nleft < kSize) ? nleft : kSize;
+        size_t ret = readnBytes(tmp, nbytes);
+        result.append(tmp, ret);
 
-    return tmp;
+        if(ret < nbytes)  //EOF
+            break;
+        nleft -= ret;
+    }
+
+    return result;
 }
 
+//按行读取字符串
 std::string ReadFile::readLineAsString()
 {
     std::string result = "";
