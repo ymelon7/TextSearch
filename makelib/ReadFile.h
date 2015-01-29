@@ -13,7 +13,7 @@ public:
     ReadFile(const std::string &path);
     ~ReadFile();
 
-    size_t readn(char *usrbuf, size_t count);
+    size_t readnBytes(char *usrbuf, size_t count);
     size_t readLine(char *usrbuf, size_t maxlen);
     std::string readnBytesAsString(size_t count);
     std::string readLineAsString();
