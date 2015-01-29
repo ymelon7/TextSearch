@@ -1,118 +1,129 @@
-#include <iostream>
+#include <iosteam>
 #include <string>
-#include <stdio.h>
 #include <fstream>
+#include <unistd.h>
+#include <dirent.h>
 #include <sys/types.h>
 #include <sys/stat.h>
-#include <dirent.h>
-#include <unistd.h>
 #include <muduo/base/Logging.h>
 
 using namespace std;
+using namespace muduo;
 
-string integerToString(int digit)
-{
-    char text[100] = {0};
-    snprintf(text, sizeof text, "%d", digit);
-    return text;
-}
-
-int g_count = 1;
+int g_count = 0;
 ofstream libfile;
 ofstream indexfile;
 
-void processFile(const string &filename)
-{
-    ifstream in(filename.c_str());
-    if(!in)
-    {
-        perror("open file error");
-        exit(EXIT_FAILURE); 
-    }
 
-    string doc = "";
+std::string integerToString(int num)
+{
+    char tmp[100] = {0};
+    snprintf(tmp, sizeof tmp, "%d", num);
+
+    return tmp;
+}
+
+void processFile(const std::string &filename)
+{
+    ifstream infile(filename.c_str());
+    std::string doc = "";
     doc += "<doc>";
-    doc += "<docid>";
+
     int docid = g_count ++;
+    doc += "<docid>";
     doc += integerToString(docid);
     doc += "</docid>";
-   
-    string tittle;        //using first line of text as tittle
-    getline(in, tittle);
-    doc += "<tittle>";
-    doc += tittle;
-    doc += "</tittle>";
 
-    string content;
-    string tmp;
-    while(getline(in, tmp))
+    std::string title;
+    getline(infile, title);
+    doc += "<title>";
+    doc += title;
+    doc += "</title>";
+
+    std::string content;
+    std::string tmp;
+    while(getline(infile, tmp))
     {
         content += tmp;
-        content += "\n";
-        tmp.clear();
+        conten += "\n";
     }
-    doc += "<content>";
+
+    doc += "<conten>";
     doc += content;
     doc += "</content>";
 
     doc += "</doc>";
-    
+
     indexfile << docid << " " << libfile.tellp() << " " << doc.size() << endl;
     libfile << doc << endl;
 
+    infile.close();
 }
 
 
-void traversDirRecur(const string &path)
+void traversDirectoryWithRecursion(const std::string &path)
 {
     DIR *dir = opendir(path.c_str());
     if(dir == NULL)
-        LOG_FATAL << "open dir error" << path;
+    {
+        LOG_FATAL << "open dir error: " << path;
+    }
     
-    chdir(path.c_str()); 
+    chdir(path.c_str());
 
-    struct dirent *pd; 
+    struct dirent *pd;
     while((pd = readdir(dir)) != NULL)
     {
         if(pd->d_name[0] == '.')
+        {
             continue;
-
+        }
+        
+        //int lstat(const char *path, struct stat *buf)
         struct stat buf;
         if(lstat(pd->d_name, &buf) == -1)
         {
-            LOG_ERROR << "lstat file: " << pd->d_name << "error";
+            LOG_ERROR < "lstat file :" << pd->d_name << "error";
             continue;
         }
+        
 
         if(S_ISDIR(buf.st_mode))
-            traversDirRecur(pd->d_name);
-        if(S_ISREG(buf.st_mode))
-            processFile(pd->d_name);     
+        {
+            traversDirectoryWithRecursion(pd->d_name);
+        }
+        else if(S_IDREG(buf.st_mode))
+        {
+            processFile(pd->d_name);
+        }
     }
-
+    
     closedir(dir);
     chdir("..");
 }
 
-
-void traversDir(const string &path)
+void traversDirectory(const std::string &path)
 {
-    char tmp[100] = {0};
+    char tmp[1024];
     if(getcwd(tmp, sizeof tmp) == NULL)
+    {
         LOG_FATAL << "getcwd error";
-
-    traversDirRecur(path);
-
+    }
+    
+    traversDirectoryWithRecursion(path);
     chdir(tmp);
 }
 
-int main(int argc, char *argv[])
+
+int main(int argc, const char *argv[])
 {
-    libfile.open("../data/libpage.xml");
+    libfile.open("../data/pagelib.xml");
     indexfile.open("../data/page.index");
 
-    traversDir("/home/melon/TextSearch/data");
-    
+    traversDirectory("/home/reubun/xiaosong/MyItem/TextSearch/data/");
+
     libfile.close();
     indexfile.close();
 }
+
+
